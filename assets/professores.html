@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perfis docentes — Trilha</title>
+    <script>
+      if (localStorage.getItem("trilha.theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Manrope:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a href="index.html" class="brand">
+          <span class="brand__mark">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 15c3-1 4-4 6-7s3-4 6-4" />
+              <circle cx="16" cy="4" r="1.2" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand__name">trilha</span>
+        </a>
+        <nav class="site-nav">
+          <a href="index.html">Início</a>
+          <a href="professores.html" aria-current="page">Perfis docentes</a>
+          <a href="minhas-avaliacoes.html">Minhas avaliações</a>
+        </nav>
+        <a href="professores.html" class="btn btn--primary">Explorar perfis</a>
+      </div>
+    </header>
+
+    <main class="page container">
+      <p class="eyebrow">Explorar perfis</p>
+      <h1 class="page__title">
+        Perfis públicos para <em>conhecer</em>, não para rotular.
+      </h1>
+      <p class="page__lead">
+        Cada perfil reúne avaliações com contexto. Uma nota é um recorte — não
+        um veredito sobre quem ensina.
+      </p>
+
+      <form class="search-form" id="search-form" role="search">
+        <label for="busca" class="sr-only">Buscar perfis</label>
+        <input id="busca" type="text" placeholder="Busque por nome ou disciplina" autocomplete="off" />
+        <button type="submit" aria-label="Buscar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </button>
+      </form>
+
+      <div class="filters-bar">
+        <select id="filtro-disciplina" aria-label="Filtrar por disciplina">
+          <option value="">Todas as disciplinas</option>
+        </select>
+        <select id="filtro-etapa" aria-label="Filtrar por etapa de ensino">
+          <option value="">Todas as etapas</option>
+        </select>
+      </div>
+
+      <p class="results-count" id="results-count"></p>
+
+      <ul class="teacher-grid" id="teacher-grid"></ul>
+      <p class="empty" id="empty-message" hidden></p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <a href="index.html" class="brand">
+          <span class="brand__mark">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 15c3-1 4-4 6-7s3-4 6-4" />
+              <circle cx="16" cy="4" r="1.2" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand__name">trilha</span>
+        </a>
+        <p>TRILHA é um nome de trabalho. Projeto em construção.</p>
+      </div>
+    </footer>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+    <script>
+      var grid = document.getElementById("teacher-grid");
+      var emptyMsg = document.getElementById("empty-message");
+      var resultsCount = document.getElementById("results-count");
+      var searchInput = document.getElementById("busca");
+      var searchForm = document.getElementById("search-form");
+      var filtroDisciplina = document.getElementById("filtro-disciplina");
+      var filtroEtapa = document.getElementById("filtro-etapa");
+
+      getDisciplines().forEach(function (d) {
+        var opt = document.createElement("option");
+        opt.value = d; opt.textContent = d;
+        filtroDisciplina.appendChild(opt);
+      });
+      getEducationLevels().forEach(function (e) {
+        var opt = document.createElement("option");
+        opt.value = e; opt.textContent = e;
+        filtroEtapa.appendChild(opt);
+      });
+
+      var arrowIcon =
+        '<svg class="teacher-card__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<line x1="5" y1="12" x2="19" y2="12" />' +
+        '<polyline points="12 5 19 12 12 19" />' +
+        "</svg>";
+
+      function render() {
+        var q = searchInput.value.trim().toLowerCase();
+        var disc = filtroDisciplina.value;
+        var etapa = filtroEtapa.value;
+
+        var filtered = TEACHERS.filter(function (t) {
+          var mQ = !q || t.name.toLowerCase().indexOf(q) !== -1 || t.discipline.toLowerCase().indexOf(q) !== -1;
+          var mD = !disc || t.discipline === disc;
+          var mE = !etapa || t.educationLevel === etapa;
+          return mQ && mD && mE;
+        });
+
+        if (filtered.length === 0) {
+          grid.innerHTML = "";
+          grid.hidden = true;
+          emptyMsg.hidden = false;
+          emptyMsg.textContent = "Nenhum professor encontrado com esses filtros.";
+          resultsCount.textContent = "";
+          return;
+        }
+
+        grid.hidden = false;
+        emptyMsg.hidden = true;
+        resultsCount.textContent =
+          filtered.length === 1 ? "1 professor encontrado" : filtered.length + " professores encontrados";
+
+        var html = "";
+        filtered.forEach(function (t) {
+          var stats = computeStats(getReviewsFor(t.slug));
+          var statsLabel =
+            stats.count === 0
+              ? "Sem avaliações ainda"
+              : stats.count + " avaliação(ões)" +
+                (stats.overall != null ? " · média " + fmtAvg(stats.overall) : "");
+          html +=
+            '<li><a class="teacher-card" href="professor.html?slug=' + encodeURIComponent(t.slug) + '">' +
+            avatarHTML(t) +
+            '<div class="teacher-card__body">' +
+            '<h2 class="teacher-card__name">' + escapeHTML(t.name) + "</h2>" +
+            '<p class="teacher-card__meta">' + escapeHTML(t.discipline) + " · " + escapeHTML(t.educationLevel) + "</p>" +
+            '<p class="teacher-card__stats">' + statsLabel + "</p>" +
+            "</div>" + arrowIcon + "</a></li>";
+        });
+        grid.innerHTML = html;
+      }
+
+      searchInput.addEventListener("input", render);
+      filtroDisciplina.addEventListener("change", render);
+      filtroEtapa.addEventListener("change", render);
+      searchForm.addEventListener("submit", function (e) { e.preventDefault(); });
+      render();
+    </script>
+  </body>
+</html>

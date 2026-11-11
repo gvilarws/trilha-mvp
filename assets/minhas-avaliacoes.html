@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Minhas avaliações — Trilha</title>
+    <script>
+      if (localStorage.getItem("trilha.theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Manrope:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a href="index.html" class="brand">
+          <span class="brand__mark">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 15c3-1 4-4 6-7s3-4 6-4" />
+              <circle cx="16" cy="4" r="1.2" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand__name">trilha</span>
+        </a>
+        <nav class="site-nav">
+          <a href="index.html">Início</a>
+          <a href="professores.html">Perfis docentes</a>
+          <a href="minhas-avaliacoes.html" aria-current="page">Minhas avaliações</a>
+        </nav>
+        <a href="professores.html" class="btn btn--primary">Explorar perfis</a>
+      </div>
+    </header>
+
+    <main class="page container">
+      <p class="eyebrow">Suas contribuições</p>
+      <h1 class="page__title">Minhas avaliações</h1>
+      <p class="page__lead">
+        Tudo que você compartilhou neste navegador. Fica salvo localmente — se
+        limpar o navegador, essas avaliações somem. Use o export para fazer backup.
+      </p>
+
+      <div class="page-actions">
+        <button type="button" class="btn btn--secondary" id="btn-export" disabled>
+          Exportar (.json)
+        </button>
+        <label class="btn btn--secondary" style="cursor:pointer; margin:0;">
+          Importar (.json)
+          <input type="file" id="input-import" accept=".json,application/json" style="display:none;" />
+        </label>
+        <button type="button" class="btn btn--danger" id="btn-clear" disabled>
+          Limpar tudo
+        </button>
+      </div>
+
+      <div id="import-status"></div>
+
+      <ul class="my-reviews-list" id="lista"></ul>
+      <p class="empty" id="vazio" hidden>
+        Você ainda não criou nenhuma avaliação.
+        <a href="professores.html" style="color: var(--primary); text-decoration: underline;">Explorar professores →</a>
+      </p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <a href="index.html" class="brand">
+          <span class="brand__mark">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 15c3-1 4-4 6-7s3-4 6-4" />
+              <circle cx="16" cy="4" r="1.2" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand__name">trilha</span>
+        </a>
+        <p>TRILHA é um nome de trabalho. Projeto em construção.</p>
+      </div>
+    </footer>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+    <script>
+      var lista = document.getElementById("lista");
+      var vazio = document.getElementById("vazio");
+      var btnExport = document.getElementById("btn-export");
+      var btnClear = document.getElementById("btn-clear");
+      var inputImport = document.getElementById("input-import");
+      var importStatus = document.getElementById("import-status");
+
+      var starIcon =
+        '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" style="width:0.75rem;height:0.75rem;color:var(--mustard);">' +
+        '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />' +
+        "</svg>";
+
+      function render() {
+        var reviews = readLocalReviews().sort(function (a, b) {
+          return b.createdAt.localeCompare(a.createdAt);
+        });
+
+        btnExport.disabled = reviews.length === 0;
+        btnClear.disabled = reviews.length === 0;
+
+        if (reviews.length === 0) {
+          lista.innerHTML = "";
+          vazio.hidden = false;
+          return;
+        }
+        vazio.hidden = true;
+
+        lista.innerHTML = reviews
+          .map(function (r) {
+            var teacher = findTeacherBySlug(r.teacherSlug);
+            var teacherName = teacher ? teacher.name : "(professor removido)";
+            var teacherInitials = teacher ? teacher.initials : "?";
+            var href = teacher ? "professor.html?slug=" + encodeURIComponent(teacher.slug) : "#";
+
+            return (
+              '<li class="my-review-card">' +
+              '<div class="my-review-card__head">' +
+              '<a class="my-review-card__teacher" href="' + href + '">' +
+              '<span class="avatar">' + escapeHTML(teacherInitials) + "</span>" +
+              '<div><div class="my-review-card__teacher-name">' + escapeHTML(teacherName) + "</div>" +
+              '<div class="my-review-card__meta">' + formatRelativeDate(r.createdAt) + "</div></div>" +
+              "</a>" +
+              '<span class="my-review-card__score">' + starIcon + " " + fmtAvg(r.overall) + "/5</span>" +
+              "</div>" +
+              '<p class="my-review-card__context">' + escapeHTML(r.context) + "</p>" +
+              '<div class="my-review-card__actions">' +
+              '<a class="btn btn--secondary" style="padding:0.4rem 0.75rem;font-size:0.75rem;" href="professor.html?slug=' + encodeURIComponent(r.teacherSlug) + "&edit=" + encodeURIComponent(r.id) + '">Editar</a>' +
+              '<button type="button" class="btn btn--danger" style="padding:0.4rem 0.75rem;font-size:0.75rem;" data-delete="' + r.id + '">Excluir</button>' +
+              "</div>" +
+              "</li>"
+            );
+          })
+          .join("");
+
+        lista.querySelectorAll("[data-delete]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            if (confirm("Excluir esta avaliação? Não pode ser desfeito.")) {
+              deleteLocalReview(btn.dataset.delete);
+              render();
+            }
+          });
+        });
+      }
+
+      btnExport.addEventListener("click", exportReviewsJSON);
+
+      btnClear.addEventListener("click", function () {
+        if (confirm("Isso vai apagar TODAS as suas avaliações neste navegador. Continuar?")) {
+          clearLocalReviews();
+          render();
+        }
+      });
+
+      inputImport.addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        importReviewsJSON(file, function (err, added) {
+          if (err) {
+            importStatus.className = "import-status import-status--err";
+            importStatus.textContent = "Erro ao importar: " + err.message;
+          } else {
+            importStatus.className = "import-status import-status--ok";
+            importStatus.textContent = added + " avaliação(ões) importada(s).";
+            render();
+          }
+          inputImport.value = "";
+        });
+      });
+
+      render();
+    </script>
+  </body>
+</html>

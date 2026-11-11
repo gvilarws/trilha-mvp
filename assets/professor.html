@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perfil docente — Trilha</title>
+    <script>
+      if (localStorage.getItem("trilha.theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Manrope:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a href="index.html" class="brand">
+          <span class="brand__mark">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 15c3-1 4-4 6-7s3-4 6-4" />
+              <circle cx="16" cy="4" r="1.2" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand__name">trilha</span>
+        </a>
+        <nav class="site-nav">
+          <a href="index.html">Início</a>
+          <a href="professores.html" aria-current="page">Perfis docentes</a>
+          <a href="minhas-avaliacoes.html">Minhas avaliações</a>
+        </nav>
+        <a href="professores.html" class="btn btn--primary">Explorar perfis</a>
+      </div>
+    </header>
+
+    <main class="page container" id="page-content"></main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <a href="index.html" class="brand">
+          <span class="brand__mark">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 15c3-1 4-4 6-7s3-4 6-4" />
+              <circle cx="16" cy="4" r="1.2" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand__name">trilha</span>
+        </a>
+        <p>TRILHA é um nome de trabalho. Projeto em construção.</p>
+      </div>
+    </footer>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+    <script>
+      var pageContent = document.getElementById("page-content");
+      var MIN_CONTEXT = 30;
+      var MAX_CONTEXT = 2000;
+
+      var DIMENSIONS = [
+        { key: "overall", label: "Geral", hint: "Uma leitura ampla da experiência" },
+        { key: "clarity", label: "Clareza nas aulas", hint: "A explicação fazia sentido para você?" },
+        { key: "questionsSpace", label: "Espaço para dúvidas", hint: "Sentiu-se à vontade para perguntar?" },
+        { key: "pace", label: "Ritmo de aprendizagem", hint: "O ritmo combinou com o seu jeito de aprender?" },
+      ];
+
+      var starIcon =
+        '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none">' +
+        '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />' +
+        "</svg>";
+
+      var thumbsUpIcon =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />' +
+        "</svg>";
+
+      var editIcon =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />' +
+        '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />' +
+        "</svg>";
+
+      var trashIcon =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<polyline points="3 6 5 6 21 6" />' +
+        '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />' +
+        '<path d="M10 11v6M14 11v6" />' +
+        '<path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />' +
+        "</svg>";
+
+      var backArrow =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<line x1="19" y1="12" x2="5" y2="12" />' +
+        '<polyline points="12 19 5 12 12 5" />' +
+        "</svg>";
+
+      var params = new URLSearchParams(window.location.search);
+      var slug = params.get("slug") || "";
+      var editId = params.get("edit") || "";
+      var teacher = findTeacherBySlug(slug);
+      var sortMode = "recentes";
+
+      var editingReview = null;
+      if (editId && teacher && isLocalReview(editId)) {
+        var r = findReviewById(editId);
+        if (r && r.teacherSlug === teacher.slug) editingReview = r;
+      }
+
+      if (!teacher) {
+        pageContent.innerHTML =
+          '<a href="professores.html" class="back-link">' + backArrow + " Todos os perfis</a>" +
+          '<p class="empty">Professor não encontrado.</p>';
+      } else {
+        renderProfile();
+      }
+
+      function renderDistribution(reviews) {
+        var dist = computeDistribution(reviews);
+        var max = Math.max(dist[5], dist[4], dist[3], dist[2], dist[1], 1);
+        var rows = "";
+        [5, 4, 3, 2, 1].forEach(function (n) {
+          var count = dist[n];
+          var pct = (count / max) * 100;
+          rows +=
+            '<div class="distribution__row">' +
+            '<span class="distribution__label">' + n + starIcon + "</span>" +
+            '<div class="distribution__bar"><div class="distribution__fill" style="width:' + pct + '%"></div></div>' +
+            '<span class="distribution__count">' + count + "</span>" +
+            "</div>";
+        });
+        return '<div class="distribution"><h3>Distribuição de notas</h3>' + rows + "</div>";
+      }
+
+      function renderReview(r) {
+        var autor = r.authorName || "Estudante anônimo";
+        var isOwn = isLocalReview(r.id);
+        var voted = hasVotedHelpful(r.id);
+        var helpfulCount = getHelpfulCount(r);
+
+        var actionsHtml = "";
+        if (isOwn) {
+          actionsHtml =
+            '<div class="review-actions">' +
+            '<a class="review-action-btn" href="professor.html?slug=' + encodeURIComponent(teacher.slug) + "&edit=" + encodeURIComponent(r.id) + '">' +
+            editIcon + " Editar</a>" +
+            '<button type="button" class="review-action-btn review-action-btn--danger" data-delete="' + r.id + '">' +
+            trashIcon + " Excluir</button>" +
+            "</div>";
+        }
+
+        return (
+          '<li class="review">' +
+          '<div class="review__head">' +
+          "<span>" +
+          '<strong class="review__author">' + escapeHTML(autor) + "</strong>" +
+          (isOwn ? '<span class="owner-badge">Sua</span>' : "") +
+          '<span class="review-date">' + formatRelativeDate(r.createdAt) + "</span>" +
+          "</span>" +
+          '<span class="review__score">' + fmtAvg(r.overall) + "/5</span>" +
+          "</div>" +
+          '<p class="review__context">' + escapeHTML(r.context) + "</p>" +
+          '<div class="review__footer">' +
+          '<button type="button" class="helpful-btn' + (voted ? " helpful-btn--active" : "") + '" data-helpful="' + r.id + '">' +
+          thumbsUpIcon + " Útil (" + helpfulCount + ")</button>" +
+          actionsHtml +
+          "</div>" +
+          "</li>"
+        );
+      }
+
+      function renderProfile() {
+        var reviews = getReviewsFor(teacher.slug);
+        var stats = computeStats(reviews);
+        var sorted = sortReviews(reviews, sortMode);
+
+        var overallValue = stats.overall == null ? "—" : fmtAvg(stats.overall);
+        var countLabel =
+          stats.count === 0 ? "Ainda sem avaliações" : stats.count + " avaliação(ões) registradas";
+
+        var dimsHtml = DIMENSIONS.filter(function (d) { return d.key !== "overall"; })
+          .map(function (d) {
+            var value = stats[d.key];
+            var pct = ((value || 0) / 5) * 100;
+            return (
+              '<li class="dimension">' +
+              '<div class="dimension__head"><span>' + d.label + "</span>" +
+              '<span class="dimension__value">' + (value == null ? "—" : fmtAvg(value)) + "</span></div>" +
+              '<div class="dimension__bar"><div class="dimension__fill" style="width: ' + pct + '%"></div></div>' +
+              "</li>"
+            );
+          })
+          .join("");
+
+        var distributionHtml = stats.count > 0 ? renderDistribution(reviews) : "";
+
+        var reviewsHtml;
+        if (sorted.length === 0) {
+          reviewsHtml = '<p class="empty">Nenhuma avaliação ainda. Seja a primeira pessoa a compartilhar uma percepção.</p>';
+        } else {
+          reviewsHtml = '<ul class="reviews__list">' + sorted.map(renderReview).join("") + "</ul>";
+        }
+
+        var sortSelect =
+          '<select id="sort-reviews" aria-label="Ordenar avaliações">' +
+          '<option value="recentes"' + (sortMode === "recentes" ? " selected" : "") + ">Mais recentes</option>" +
+          '<option value="nota-alta"' + (sortMode === "nota-alta" ? " selected" : "") + ">Maior nota</option>" +
+          '<option value="nota-baixa"' + (sortMode === "nota-baixa" ? " selected" : "") + ">Menor nota</option>" +
+          "</select>";
+
+        var initial = editingReview
+          ? {
+              authorName: editingReview.authorName || "",
+              overall: editingReview.overall,
+              clarity: editingReview.clarity,
+              questionsSpace: editingReview.questionsSpace,
+              pace: editingReview.pace,
+              context: editingReview.context,
+            }
+          : { authorName: "", overall: 5, clarity: 4, questionsSpace: 4, pace: 4, context: "" };
+
+        var slidersHtml = DIMENSIONS.map(function (d) {
+          var val = initial[d.key];
+          return (
+            '<div class="slider-row">' +
+            '<div class="slider-row__head"><label for="dim-' + d.key + '">' + d.label + "</label>" +
+            '<span class="field__value" id="val-' + d.key + '">' + val + "</span></div>" +
+            '<input id="dim-' + d.key + '" type="range" min="1" max="5" step="1" value="' + val + '" data-dim="' + d.key + '" />' +
+            '<p class="field__hint">' + d.hint + "</p>" +
+            "</div>"
+          );
+        }).join("");
+
+        var editNotice = editingReview
+          ? '<div class="edit-notice">Você está editando sua avaliação. <a href="professor.html?slug=' + encodeURIComponent(teacher.slug) + '">Cancelar edição</a></div>'
+          : "";
+
+        var formTitle = editingReview ? "Editar sua avaliação" : "Compartilhe sua percepção";
+        var submitLabel = editingReview ? "Salvar alterações" : "Enviar avaliação";
+
+        var contextLen = initial.context.length;
+        var submitDisabled = contextLen < MIN_CONTEXT ? " disabled" : "";
+
+        pageContent.innerHTML =
+          '<a href="professores.html" class="back-link">' + backArrow + " Todos os perfis</a>" +
+          '<header class="profile-header">' +
+          avatarHTML(teacher, true) +
+          "<div><h1>" + escapeHTML(teacher.name) + "</h1>" +
+          "<p>" + escapeHTML(teacher.discipline) + " · " + escapeHTML(teacher.educationLevel) + "</p></div>" +
+          "</header>" +
+          (teacher.bio ? '<p class="profile-bio">' + escapeHTML(teacher.bio) + "</p>" : "") +
+          '<section class="stats-card">' +
+          '<div class="stats-card__head">' +
+          '<span class="stats-card__value">' + overallValue + "</span>" +
+          '<div><p class="stats-card__label">Leitura agregada</p>' +
+          '<p class="stats-card__count">' + countLabel + "</p></div>" +
+          "</div>" +
+          '<ul class="dimensions">' + dimsHtml + "</ul>" +
+          distributionHtml +
+          "</section>" +
+          '<section class="reviews">' +
+          "<h2>Avaliações</h2>" +
+          '<div class="reviews-toolbar"><span></span>' + sortSelect + "</div>" +
+          reviewsHtml +
+          "</section>" +
+          '<section class="review-form" id="form-section">' +
+          editNotice +
+          "<h2>" + formTitle + "</h2>" +
+          "<p>Sua avaliação é um recorte — não um veredito.</p>" +
+          '<div id="form-banner"></div>' +
+          '<form id="review-form" novalidate>' +
+          '<div class="field" id="field-author">' +
+          '<label for="author">Seu nome (opcional)</label>' +
+          '<input id="author" type="text" placeholder="Deixe em branco para anônimo" maxlength="80" value="' + escapeHTML(initial.authorName) + '" />' +
+          "</div>" +
+          slidersHtml +
+          '<div class="field" id="field-context">' +
+          '<label for="context">Conte como foi aprender</label>' +
+          '<textarea id="context" maxlength="' + MAX_CONTEXT + '" rows="4" placeholder="O que ajudou, o que poderia mudar, em qual contexto.">' + escapeHTML(initial.context) + '</textarea>' +
+          '<p class="field__hint" id="char-count">' + contextLen + "/" + MAX_CONTEXT + " caracteres (mínimo " + MIN_CONTEXT + ")</p>" +
+          '<p class="error-text" id="erro-context" hidden></p>' +
+          "</div>" +
+          '<button type="submit" class="btn btn--primary" id="submit-btn"' + submitDisabled + ">" + submitLabel + "</button>" +
+          "</form></section>";
+
+        bindForm();
+        document.getElementById("sort-reviews").addEventListener("change", function (e) {
+          sortMode = e.target.value;
+          renderProfile();
+        });
+
+        pageContent.querySelectorAll('[data-helpful]').forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            toggleHelpful(btn.dataset.helpful);
+            renderProfile();
+          });
+        });
+
+        pageContent.querySelectorAll('[data-delete]').forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            if (confirm("Excluir esta avaliação? Não pode ser desfeito.")) {
+              deleteLocalReview(btn.dataset.delete);
+              if (editId === btn.dataset.delete) {
+                window.location.href = "professor.html?slug=" + encodeURIComponent(teacher.slug);
+                return;
+              }
+              renderProfile();
+            }
+          });
+        });
+
+        if (editingReview) {
+          var formSection = document.getElementById("form-section");
+          if (formSection) formSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+
+      function bindForm() {
+        var form = document.getElementById("review-form");
+        var submitBtn = document.getElementById("submit-btn");
+        var context = document.getElementById("context");
+        var charCount = document.getElementById("char-count");
+        var erroContext = document.getElementById("erro-context");
+        var fieldContext = document.getElementById("field-context");
+        var authorInput = document.getElementById("author");
+
+        form.querySelectorAll('input[type="range"]').forEach(function (input) {
+          var key = input.dataset.dim;
+          var display = document.getElementById("val-" + key);
+          display.textContent = input.value;
+          input.addEventListener("input", function () {
+            display.textContent = input.value;
+          });
+        });
+
+        function validar() {
+          var len = context.value.trim().length;
+          charCount.textContent = len + "/" + MAX_CONTEXT + " caracteres (mínimo " + MIN_CONTEXT + ")";
+          if (len > 0 && len < MIN_CONTEXT) {
+            fieldContext.classList.add("field--invalid");
+            charCount.classList.add("char-count--invalid");
+            erroContext.hidden = false;
+            erroContext.textContent = "Escreva pelo menos " + MIN_CONTEXT + " caracteres para dar contexto.";
+            submitBtn.disabled = true;
+          } else {
+            fieldContext.classList.remove("field--invalid");
+            charCount.classList.remove("char-count--invalid");
+            erroContext.hidden = true;
+            submitBtn.disabled = len === 0;
+          }
+        }
+        context.addEventListener("input", validar);
+        validar();
+
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          if (context.value.trim().length < MIN_CONTEXT) return;
+
+          var payload = {
+            authorName: authorInput.value.trim(),
+            overall: Number(form.querySelector('[data-dim="overall"]').value),
+            clarity: Number(form.querySelector('[data-dim="clarity"]').value),
+            questionsSpace: Number(form.querySelector('[data-dim="questionsSpace"]').value),
+            pace: Number(form.querySelector('[data-dim="pace"]').value),
+            context: context.value.trim(),
+          };
+
+          if (editingReview) {
+            updateLocalReview(editingReview.id, payload);
+            window.location.href = "professor.html?slug=" + encodeURIComponent(teacher.slug);
+          } else {
+            payload.teacherSlug = teacher.slug;
+            addLocalReview(payload);
+            renderProfile();
+            var banner = document.getElementById("form-banner");
+            banner.innerHTML =
+              '<div class="success-banner">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+              '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>' +
+              "Avaliação enviada. Obrigado por contribuir com contexto.</div>";
+            banner.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

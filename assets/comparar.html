@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Comparar professores — Trilha</title>
+    <script>
+      if (localStorage.getItem("trilha.theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Manrope:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a href="index.html" class="brand">
+          <span class="brand__mark">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 15c3-1 4-4 6-7s3-4 6-4" />
+              <circle cx="16" cy="4" r="1.2" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand__name">trilha</span>
+        </a>
+        <nav class="site-nav">
+          <a href="index.html">Início</a>
+          <a href="professores.html">Perfis docentes</a>
+          <a href="minhas-avaliacoes.html">Minhas avaliações</a>
+        </nav>
+        <a href="professores.html" class="btn btn--primary">Explorar perfis</a>
+      </div>
+    </header>
+
+    <main class="page container">
+      <p class="eyebrow">Comparar</p>
+      <h1 class="page__title">
+        Ver dois professores <em>lado a lado</em>.
+      </h1>
+      <p class="page__lead">
+        Comparação respeitosa: cada número é um recorte. Nenhuma nota define
+        quem ensina.
+      </p>
+
+      <div class="compare-pickers">
+        <select id="sel-a" aria-label="Primeiro professor"></select>
+        <span class="compare-pickers__vs">vs</span>
+        <select id="sel-b" aria-label="Segundo professor"></select>
+      </div>
+
+      <div class="compare-grid">
+        <div id="card-a"></div>
+        <div id="card-b"></div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <a href="index.html" class="brand">
+          <span class="brand__mark">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 15c3-1 4-4 6-7s3-4 6-4" />
+              <circle cx="16" cy="4" r="1.2" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand__name">trilha</span>
+        </a>
+        <p>TRILHA é um nome de trabalho. Projeto em construção.</p>
+      </div>
+    </footer>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+    <script>
+      var selA = document.getElementById("sel-a");
+      var selB = document.getElementById("sel-b");
+      var cardA = document.getElementById("card-a");
+      var cardB = document.getElementById("card-b");
+
+      var DIMENSIONS = [
+        { key: "overall", label: "Geral" },
+        { key: "clarity", label: "Clareza" },
+        { key: "questionsSpace", label: "Dúvidas" },
+        { key: "pace", label: "Ritmo" },
+      ];
+
+      function fillSelect(sel, current) {
+        var html = '<option value="">— escolha —</option>';
+        TEACHERS.forEach(function (t) {
+          html += '<option value="' + t.slug + '"' + (t.slug === current ? " selected" : "") + ">" + escapeHTML(t.name) + "</option>";
+        });
+        sel.innerHTML = html;
+      }
+
+      var params = new URLSearchParams(window.location.search);
+      var slugA = params.get("a") || "";
+      var slugB = params.get("b") || "";
+
+      fillSelect(selA, slugA);
+      fillSelect(selB, slugB);
+
+      function renderCard(container, teacherSlug, otherSlug) {
+        if (!teacherSlug) {
+          container.className = "compare-card";
+          container.innerHTML = '<p class="compare-card__empty">Escolha um professor acima.</p>';
+          return;
+        }
+        var teacher = findTeacherBySlug(teacherSlug);
+        if (!teacher) {
+          container.className = "compare-card";
+          container.innerHTML = '<p class="compare-card__empty">Professor não encontrado.</p>';
+          return;
+        }
+
+        var reviews = getReviewsFor(teacher.slug);
+        var stats = computeStats(reviews);
+
+        var otherStats = { overall: null, clarity: null, questionsSpace: null, pace: null };
+        if (otherSlug) {
+          var otherTeacher = findTeacherBySlug(otherSlug);
+          if (otherTeacher) {
+            otherStats = computeStats(getReviewsFor(otherTeacher.slug));
+          }
+        }
+
+        var overallValue = stats.overall == null ? "—" : fmtAvg(stats.overall);
+
+        var dimsHtml = DIMENSIONS.map(function (d) {
+          var value = stats[d.key];
+          var otherValue = otherStats[d.key];
+          var isWinner = value != null && otherValue != null && value > otherValue;
+          var pct = ((value || 0) / 5) * 100;
+          return (
+            '<li class="compare-dim">' +
+            '<div class="compare-dim__head">' +
+            "<span>" + d.label + "</span>" +
+            '<span class="compare-dim__value' + (isWinner ? " compare-dim__value--winner" : "") + '">' +
+            (value == null ? "—" : fmtAvg(value)) +
+            "</span></div>" +
+            '<div class="compare-dim__bar"><div class="compare-dim__fill" style="width:' + pct + '%"></div></div>' +
+            "</li>"
+          );
+        }).join("");
+
+        container.className = "compare-card";
+        container.innerHTML =
+          '<div class="compare-card__head">' +
+          avatarHTML(teacher, true) +
+          '<div><h2 class="compare-card__name">' + escapeHTML(teacher.name) + "</h2>" +
+          '<p class="compare-card__meta">' + escapeHTML(teacher.discipline) + " · " + escapeHTML(teacher.educationLevel) + "</p></div>" +
+          "</div>" +
+          '<div class="compare-card__overall">' +
+          '<span class="compare-card__overall-value">' + overallValue + "</span>" +
+          '<span class="compare-card__overall-label">' +
+          (stats.count === 0 ? "Sem avaliações" : stats.count + " avaliações") +
+          "</span></div>" +
+          '<ul class="compare-dims">' + dimsHtml + "</ul>" +
+          '<a class="compare-card__link" href="professor.html?slug=' + encodeURIComponent(teacher.slug) + '">Ver perfil completo →</a>';
+      }
+
+      function render() {
+        renderCard(cardA, slugA, slugB);
+        renderCard(cardB, slugB, slugA);
+        selA.value = slugA;
+        selB.value = slugB;
+        var newParams = new URLSearchParams();
+        if (slugA) newParams.set("a", slugA);
+        if (slugB) newParams.set("b", slugB);
+        var newUrl = window.location.pathname + (newParams.toString() ? "?" + newParams.toString() : "");
+        history.replaceState(null, "", newUrl);
+      }
+
+      selA.addEventListener("change", function () { slugA = selA.value; render(); });
+      selB.addEventListener("change", function () { slugB = selB.value; render(); });
+
+      render();
+    </script>
+  </body>
+</html>

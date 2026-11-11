@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trilha — Escuta que vira caminho</title>
+    <script>
+      if (localStorage.getItem("trilha.theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Manrope:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a href="index.html" class="brand">
+          <span class="brand__mark">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 15c3-1 4-4 6-7s3-4 6-4" />
+              <circle cx="16" cy="4" r="1.2" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand__name">trilha</span>
+        </a>
+        <nav class="site-nav">
+          <a href="index.html" aria-current="page">Início</a>
+          <a href="professores.html">Perfis docentes</a>
+          <a href="minhas-avaliacoes.html">Minhas avaliações</a>
+        </nav>
+        <a href="professores.html" class="btn btn--primary">
+          Explorar perfis
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </a>
+      </div>
+    </header>
+
+    <main class="hero container">
+      <p class="eyebrow">Escuta que vira caminho</p>
+      <h1>Sua experiência pode <em>melhorar</em> a próxima aula.</h1>
+      <p class="hero__lead">
+        Um espaço para estudantes compartilharem como aprendem — e para escolas
+        transformarem essas percepções em conversas e melhorias pedagógicas.
+      </p>
+      <div class="hero__actions">
+        <a href="professores.html" class="btn btn--primary">
+          Explorar perfis docentes
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </a>
+      </div>
+      <p class="hero__note">
+        Avaliações são pontos de partida para compreender experiências — não
+        veredictos.
+      </p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <a href="index.html" class="brand">
+          <span class="brand__mark">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M4 15c3-1 4-4 6-7s3-4 6-4" />
+              <circle cx="16" cy="4" r="1.2" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand__name">trilha</span>
+        </a>
+        <p>TRILHA é um nome de trabalho. Projeto em construção.</p>
+      </div>
+    </footer>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
